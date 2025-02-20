@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Käsieleiden Tunnistus</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image"></script>
+</head>
+<body>
+
+    <h1>Kivi paperi sakset</h1>
+    <video id="webcam" width="400" height="300" autoplay playsinline></video>
+    <p id="result">Näytät:</p>
+
+    <script>
+        const modelURL = "https://teachablemachine.withgoogle.com/models/dPW4k749O/";  //Minun mallini, jonka olen laittanut tämän linkin taakse nettiin.
+        let model, webcam;
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                document.getElementById("webcam").srcObject = stream; //Tämä tosiaan kysytty Chatgpt:ltä, Kysymys ja vastaus löytyy oppimispäiväkirjasta.
+            } catch (error) {
+                console.error("Kameraa ei voitu avata:", error);
+            }
+        }
+
+        async function loadModel() {
+            model = await tmImage.load(modelURL + "model.json", modelURL + "metadata.json");
+            
+            predictLoop();
+        }
+
+        async function predictLoop() { // Tämä loop vastaa ennustusten tekemisestä ja videokuvan näyttämisestä. 
+            const video = document.getElementById("webcam");
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d"); 
+
+            while (true) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height); 
+
+                const prediction = await model.predict(canvas);
+                const userChoice = prediction.sort((a, b) => b.probability - a.probability)[0].className; //Järjestetään ennusteet todennäköisyyden mukaan
+
+                document.getElementById("result").innerText = `Näytät: ${userChoice}`; 
+                
+                await new Promise(resolve => setTimeout(resolve, 500));   //Intervalli puolen sekunnin välein
+            }
+        }
+
+        startCamera();
+        loadModel();
+    </script>
+
+</body>
+</html>
